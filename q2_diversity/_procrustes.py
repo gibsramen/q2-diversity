@@ -119,9 +119,9 @@ def _procrustes_monte_carlo(reference: np.ndarray, other: np.ndarray,
     return df
 
 
-def partial_procrustes(reference: OrdinationResults, other: OrdinationResults,
-                       pairing: qiime2.CategoricalMetadataColumn,
-                       dimensions: int = 5) -> OrdinationResults:
+def unpaired_procrustes(reference: OrdinationResults, other: OrdinationResults,
+                        pairing: qiime2.CategoricalMetadataColumn,
+                        dimensions: int = 5) -> OrdinationResults:
     if reference.samples.shape[1] < dimensions:
         raise ValueError('Cannot fit fewer dimensions than available')
 
@@ -134,13 +134,6 @@ def partial_procrustes(reference: OrdinationResults, other: OrdinationResults,
     if len(pairing) == 0:
         raise ValueError('The metadata are lacking paired samples')
 
-    pairing = pairing[pairing.isin(set(reference.samples.index) &
-                                   set(other.samples.index))]
-
-    if len(pairing) < dimensions:
-        raise ValueError('Need at least "dimension" number of paired samples '
-                         'than the number of dimensions')
-
     ref_pairs = set(pairing.index) & set(reference.samples.index)
     other_pairs = set(pairing.index) & set(other.samples.index)
 
@@ -151,17 +144,21 @@ def partial_procrustes(reference: OrdinationResults, other: OrdinationResults,
         raise ValueError('The other frame lacks paired samples')
 
     # make sure pairs exist in both ordinations
-    valid_ref_pairs = {(k, v) for k, v in pairings.loc[ref_pairs].items()}
-    valid_other_pairs = {(v, k) for k, v in pairings.loc[other_pairs].items()}
+    valid_ref_pairs = {(k, v) for k, v in pairing.loc[ref_pairs].items()}
+    valid_other_pairs = {(v, k) for k, v in pairing.loc[other_pairs].items()}
     common = sorted(valid_ref_pairs & valid_other_pairs)
+
+    if len(common) < dimensions:
+        raise ValueError('Need at least "dimension" number of paired samples '
+                         'than the number of dimensions')
 
     # extract a common pairing order
     ref_order = [k for k, _ in common]
     other_order = [v for _, v in common]
 
-    ref_df, other_df = _partial_procrustes(reference.samples,
-                                           other.samples,
-                                           ref_order, other_order)
+    ref_df, other_df = _unpaired_procrustes(reference.samples,
+                                            other.samples,
+                                            ref_order, other_order)
 
     out = OrdinationResults(
             short_method_name=reference.short_method_name,
@@ -174,6 +171,7 @@ def partial_procrustes(reference: OrdinationResults, other: OrdinationResults,
             proportion_explained=reference.proportion_explained[:dimensions]
             .copy())
     return out
+
 
 def _deconstructed_procrustes(mtx1, mtx2):
     # Derived from scipy procrustes
@@ -203,7 +201,7 @@ def _deconstructed_procrustes(mtx1, mtx2):
     return mtx1_translate, mtx2_translate, norm1, norm2, R, s
 
 
-def _partial_procrustes(df_mtx1, df_mtx2, df_mtx1_pair_ids, df_mtx2_pair_ids):
+def _unpaired_procrustes(df_mtx1, df_mtx2, df_mtx1_pair_ids, df_mtx2_pair_ids):
     df_mtx1 = df_mtx1.copy()
     df_mtx2 = df_mtx2.copy()
 

@@ -358,14 +358,12 @@ plugin.methods.register_function(
 )
 
 plugin.methods.register_function(
-    function=q2_diversity.partial_procrustes,
+    function=q2_diversity.unpaired_procrustes,
     inputs={'reference': PCoAResults,
-            'other': PCoAResults,
-    },
+            'other': PCoAResults, },
     parameters={
         'dimensions': Int % Range(1, None),
-        'pairing': MetadataColumn[Categorical],
-    },
+        'pairing': MetadataColumn[Categorical], },
     outputs=[
         ('transformed', PCoAResults),
     ],
@@ -377,16 +375,18 @@ plugin.methods.register_function(
     parameter_descriptions={
         'dimensions': ('The number of dimensions to use when fitting the two '
                        'matrices'),
-        'pairing': ("The metadata column describing sample pairs which exist.")
+        'pairing': ("The metadata column describing sample pairs which exist. "
+                    "The values of this column should be a samples paired "
+                    "sample ID.")
     },
     output_descriptions={
         'transformed': ("The 'other' ordination transformed into the space of "
                         "the reference ordination."),
     },
-    name='Partial Procrustes',
-    description=('Transform one ordination into another, using paired samples '
-                 'to anchor the transformation. This method allows does not '
-                 'require all samples to be paired.')
+    name='Unpaired Procrustes',
+    description=('Transform one ordination into another, using an incomplete '
+                 'set of paired samples to anchor the transformation. This '
+                 'method allows does not require all samples to be paired.')
 )
 
 plugin.pipelines.register_function(
