@@ -134,8 +134,15 @@ def partial_procrustes(reference: OrdinationResults, other: OrdinationResults,
     if len(pairing) == 0:
         raise ValueError('The metadata are lacking paired samples')
 
-    ref_pairs = sorted(set(pairing.index) & set(reference.samples.index))
-    other_pairs = sorted(set(pairing.index) & set(other.samples.index))
+    pairing = pairing[pairing.isin(set(reference.samples.index) &
+                                   set(other.samples.index))]
+
+    if len(pairing) < dimensions:
+        raise ValueError('Need at least "dimension" number of paired samples '
+                         'than the number of dimensions')
+
+    ref_pairs = set(pairing.index) & set(reference.samples.index)
+    other_pairs = set(pairing.index) & set(other.samples.index)
 
     if len(ref_pairs) == 0:
         raise ValueError('The reference frame lacks paired samples')
@@ -143,8 +150,14 @@ def partial_procrustes(reference: OrdinationResults, other: OrdinationResults,
     if len(other_pairs) == 0:
         raise ValueError('The other frame lacks paired samples')
 
-    ref_order = ref_pairs
-    other_order = pairing.loc[ref_pairs].values
+    # make sure pairs exist in both ordinations
+    valid_ref_pairs = {(k, v) for k, v in pairings.loc[ref_pairs].items()}
+    valid_other_pairs = {(v, k) for k, v in pairings.loc[other_pairs].items()}
+    common = sorted(valid_ref_pairs & valid_other_pairs)
+
+    # extract a common pairing order
+    ref_order = [k for k, _ in common]
+    other_order = [v for _, v in common]
 
     ref_df, other_df = _partial_procrustes(reference.samples,
                                            other.samples,

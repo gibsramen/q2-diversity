@@ -15,7 +15,8 @@ import pandas as pd
 
 from q2_diversity import procrustes_analysis
 from q2_diversity._procrustes import  (_deconstructed_procrustes,
-                                       _partial_procrustes)
+                                       _partial_procrustes,
+                                       partial_procrustes)
 
 
 class PartialProcrustesTests(unittest.TestCase):
@@ -74,6 +75,7 @@ class PartialProcrustesTests(unittest.TestCase):
         mtx1 = np.array([[1, 4], [1, 3], [1, 2], [1, 1], [2, 1]], 'd')
         data1 = pd.DataFrame(mtx1, index=['foo', 'a1', 'b1', 'c1', 'd1'],
                              columns=[0, 1])
+
         data1paired = ['a1', 'b1', 'c1', 'd1']
 
         # a larger L, shifted, mirrored, with an extra point on the horizontal
@@ -88,6 +90,48 @@ class PartialProcrustesTests(unittest.TestCase):
         # we should be anchored
         npt.assert_allclose(df1_obs.loc[data1paired].values,
                             df2_obs.loc[data2paired].values)
+
+    def test_partial_procrustes_api_call(self):
+        # an L with an extra point on vertical
+        # note b1/a1 are in different index order than data2
+        mtx1 = np.array([[1, 3], [1, 4], [1, 2], [1, 1], [2, 1]], 'd')
+        data1 = pd.DataFrame(mtx1, index=['foo', 'b1', 'a1', 'c1', 'd1'],
+                             columns=[0, 1])
+        ord1 = OrdinationResults(short_method_name='foo',
+                                 long_method_name='bar',
+                                 eigvals=[1, 2]
+                                 samples=data1,
+                                 proportion_explained=[1, 2])
+
+        data1paired = ['a1', 'b1', 'c1', 'd1']
+
+        # a larger L, shifted, mirrored, with an extra point on the horizontal
+        mtx2 = np.array([[4, -2], [4, -4], [4, -6], [2, -6], [0, -6]], 'd')
+        data2 = pd.DataFrame(mtx2, index=['a2', 'b2', 'c2', 'd2', 'bar'],
+                             columns=[0, 1])
+        ord2 = OrdinationResults(short_method_name='foo',
+                                 long_method_name='bar',
+                                 eigvals=[1, 2]
+                                 samples=data2,
+                                 proportion_explained=[1, 2])
+
+        data2paired = ['a2', 'b2', 'c2', 'd2']
+
+        md = pd.DataFrame([['a1', 'a2'],
+                           ['b1', 'b2'],
+                           ['c1', 'c2'],
+                           ['d1', 'd2'],
+                           ['a2', 'a1'],
+                           ['b2', 'b1'],
+                           ['c2', 'c1'],
+                           ['d2', 'd1']],
+                          columns=['sample-id', 'pairings'])
+        md = qiime2.Metadata(md)
+        obs = partial_procrustes(ord1, ord2, md.get_column('pairings'), 2)
+
+        # we should be anchored
+        npt.assert_allclose(obs.samples.loc[data1paired].values,
+                            obs.samples.loc[data2paired].values)
 
 
 class PCoATests(unittest.TestCase):
