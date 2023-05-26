@@ -60,8 +60,7 @@ class UnpairedProcrustesTests(unittest.TestCase):
                           [-np.cos(shiftangle),
                            -np.sin(shiftangle)],
                           [-np.cos(np.pi / 2 - shiftangle),
-                           -np.sin(np.pi / 2 - shiftangle)]],
-                          'd') / np.sqrt(4)
+                           -np.sin(np.pi / 2 - shiftangle)]], 'd') / np.sqrt(4)
         result = _deconstructed_procrustes(data1, data2)
         a, b, disparity = self._complete_procrustes(data1, data2, *result)
         npt.assert_allclose(b, a)
